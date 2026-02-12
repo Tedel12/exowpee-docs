@@ -1,0 +1,119 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Exowpee API",
+  "colors": {
+    "primary": "#16A34A",
+    "light": "#07C983",
+    "dark": "#15803D"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+  "tabs": [
+    {
+      "tab": "Overview",
+      "groups": [
+        {
+          "group": "Getting Started",
+          "pages": [
+            "introduction",
+            "authentication",
+            "errors",
+            "sandbox"
+          ],
+          "icon": "home"
+
+        },
+        {
+          "group": "Advanced",
+          "pages": [
+            "webhooks",
+            "roadmap"
+          ],
+          "icon": "cogs"
+        }
+      ]
+    },
+    {
+      "tab": "Modules",
+      "groups": [
+        {
+          "group": "IAM (Identity & Access Management)",
+          "icon": "lock",
+          "pages": ["modules/iam"]
+        },
+        {
+          "group": "Catalog (Catalog Management)",
+          "icon": "book-open",
+          "pages": ["modules/catalog"]
+        },
+        {
+          "group": "Customer (Customer Management)",
+          "icon": "users",
+          "pages": ["modules/customer"]
+        },
+        {
+          "group": "Order (Order Management)",
+          "icon": "shopping-cart",
+          "pages": ["modules/order"]
+        },
+        {
+          "group": "Ledger (Accounting)",
+          "icon": "calculator",
+          "pages": ["modules/ledger"]
+        },
+        {
+          "group": "Team (Team & Business Management)",
+          "icon": "briefcase",
+          "pages": ["modules/team"]
+        }
+      ]
+    },
+    {
+      "tab": "API Reference",
+      "openapi": "./openapi.json"
+    },
+    {
+      "tab": "Resources",
+      "groups": [
+        {"group": "Changelog", "icon": "history", "pages": ["changelog"]},
+        {"group": "Postman Collection", "icon": "download", "pages": ["postman"]}
+      ]
+    }
+  ]
+},
+    "redirects": [
+  {
+    "source": "/introduction",
+    "destination": "/"
+  }
+],
+  "openapi": "./openapi.json",
+  "api": {
+    "group": "API Reference"
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Support",
+        "href": "mailto:support@exowpee.com"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Dashboard",
+      "href": "https://app.exowpee.com"
+    }
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/exowpee",
+      "github": "https://github.com/exowpee",
+      "linkedin": "https://linkedin.com/company/exowpee"
+    }
+  }
+}

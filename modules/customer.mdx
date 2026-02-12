@@ -1,0 +1,378 @@
+## Overview
+
+The Customer module is dedicated to managing all information related to your clients (end customers who buy from you). Its main purpose is to create, update, view, and organize customer profiles, including personal details, contact information, addresses, purchase history, and any custom notes. This module acts as the central place for customer data, making it easy to associate clients with orders, track their buying behavior, and provide personalized service.
+
+For complete beginners: Imagine you run a shop. When someone buys something, you need to know who they are (name, phone, email, address) so you can deliver, invoice, or follow up later. The Customer module is your "address book" for buyers. It lets you add new customers when they buy for the first time, update their info if they move or change phone number, and see their past orders. This is crucial for loyalty programs, credit sales, or delivery.
+
+- **Key Objectives**:
+  - Store and manage complete customer profiles in one place.
+  - Link customers to orders (who bought what, when, and how much).
+  - Support credit sales (customers who pay later).
+  - Keep track of customer history (orders, returns, notes).
+  - Ensure data privacy and multi-tenant isolation (each company sees only its own customers).
+  - Provide quick search and filtering for sales teams.
+
+For beginners: You start by creating a customer profile (name + phone is often enough). Then, when creating an order (in ORDER module), you select this customer. The system automatically links the order to the customer. Later, you can see all orders for that customer in one place. It's simple but powerful for small shops or large businesses.
+
+- **How it Fits in Exowpee**:
+  - **IAM**: Controls who can create/view/edit customers (permissions like view_customers, create_customer).
+  - **ORDER**: Uses customer_id to associate orders with clients.
+  - **CATALOG**: Indirectly linked – customers buy products from catalog.
+  - **LEDGER**: Records credit sales or payments from customers.
+  - Multi-tenant: All customers are scoped to your current company (from your JWT token).
+
+- **Why It's Important for Developers**:
+  - Customer IDs are Ksuid strings (27 characters, e.g., "39WSvi21oTnZN8i028Y80FTNT1x").
+  - Data is isolated per company – no risk of seeing another company's customers.
+  - The module supports basic CRUD (Create, Read, Update, Delete) operations.
+  - Beginners: Don't worry about Ksuid – the system generates them automatically when you create a customer.
+
+## Roles & Permissions (RBAC)
+
+The Customer module uses the IAM RBAC system. Permissions are specific to customer actions and scoped to the user's current company profile.
+
+- **Roles** : Typical roles include "Admin" (full control), "Sales Manager" (create/update customers), "Sales User" (view and create), "Cashier" (view only during sales).
+- **Permissions** : Granular rights for customer data.
+
+Common permissions for Customer:
+- `view_customers` : List and view customer details and history.
+- `create_customer` : Add new customers.
+- `update_customer` : Edit existing customer info (name, phone, address, etc.).
+- `delete_customer` : Remove a customer profile (usually restricted).
+- `view_customer_history` : See past orders and credit info.
+
+Example roles:
+- **Admin** : All permissions (view, create, update, delete).
+- **Sales Manager** : view_customers, create_customer, update_customer.
+- **Sales User** : view_customers, create_customer (e.g., add a new customer during a sale).
+- **Cashier** : view_customers only (to check if a customer exists for credit sale).
+
+For beginners: If you get a 403 Forbidden error when trying to create a customer, it means your user doesn't have "create_customer" permission. Ask an admin to add it via IAM (extra_permissions or role update). You can always check your permissions with GET /v1/auth/me.
+
+For developers: Permissions are checked server-side. Custom permissions can be added in code. In multi-tenant mode, customers are filtered by company_id from the token – no cross-company access.
+
+## Endpoints
+
+The Customer module has 4 main routes (CRUD operations). All endpoints are protected and require Bearer JWT token. They are scoped to the current company.
+
+| Method | URL | Description | Required Params / Body | Example Response | Required Permissions |
+| --- | --- | --- | --- | --- | --- |
+| GET | `/v1/customer` | List all customers | `?search=ben` (optional) | `{"data": [{"id": string, "name": "Ben"}], "meta": {"total": 5}}` | `view_customers` |
+| POST | `/v1/customer` | Create a new customer | `{"name": string, "email": string, "phone": string, "address": string}` | `{"id": "39W...", "name": "New Client", "phone": "+22912345678"}` | `create_customer` |
+| GET | `/v1/customer/{id}` | Get customer details | `id` (Ksuid) | `{"id": string, "name": "Ben Client", "orders_count": 3}` | `view_customers` |
+| PUT | `/v1/customer/{id}` | Update customer | `{"name": string, "phone": string}` | `{"id": string, "name": "Updated Name"}` | `update_customer` |
+
+**Note**: No DELETE endpoint is currently exposed (good practice for customers – archive instead of delete). If needed, it can be added later with delete_customer permission.
+
+**Lien vers API Reference** : See [API Reference > Customer](/api-reference/customer) for technical details.
+
+## Examples of Use
+
+Let's go through each endpoint step by step with full cURL examples, explanations, and what every property means. Assume you are authenticated (Bearer token from IAM). We’ll explain why each field matters and what to do if something goes wrong.
+
+### Example 1: List Customers (GET /v1/customer)
+
+This endpoint shows all customers in your current company. It's useful for seeing who your clients are, searching for someone, or checking how many customers you have.
+
+**Required** : Nothing – just the token in the header.
+
+**Optional** :
+- ?search=ben : Search by name, email, or phone.
+- ?page=2 : Go to page 2 (pagination).
+- ?limit=10 : Show 10 customers per page.
+
+cURL example (basic list):
+```bash
+curl -X GET "http://localhost:8000/v1/customer" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+cURL example with search:
+```bash
+curl -X GET "http://localhost:8000/v1/customer?search=ben" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Expected Response (200 OK)** :
+```json
+{
+  "data": [
+    {
+      "id": "39WSvi21oTnZN8i028Y80FTNT1x",
+      "name": "Ben Client",
+      "email": "ben.client@example.com",
+      "phone": "+22912345678",
+      "address": "Rue des Marchands, Cotonou, Benin",
+      "created_at": "2026-02-10T10:15:00Z",
+      "updated_at": "2026-02-11T14:30:00Z"
+    },
+    {
+      "id": "39XabcdeFgHijKlMnOpQrStUvWx",
+      "name": "Marie Shop",
+      "email": "marie@shop.bj",
+      "phone": "+22998765432",
+      "address": "Fidjrossè, Cotonou",
+      "created_at": "2026-02-12T09:00:00Z",
+      "updated_at": "2026-02-12T09:00:00Z"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 15,
+    "total": 2
+  }
+}
+```
+
+**Explanation of Response Properties** :
+- **data** : Array of customer objects. Each customer has:
+  - **id** : Unique Ksuid (27 characters). Use this in orders (customer_id) or to get details (GET /v1/customer/{id}).
+  - **name** : Full name or company name of the customer.
+  - **email** : Email address (optional but useful for receipts).
+  - **phone** : Phone number (often required for delivery or contact).
+  - **address** : Physical address (very important for delivery).
+  - **created_at** / **updated_at** : Timestamps when the customer was created or last edited.
+- **meta** : Pagination info:
+  - **current_page** : Page you're viewing.
+  - **last_page** : Total pages.
+  - **per_page** : Items per page.
+  - **total** : Total number of customers in your company.
+
+**What This Does** : The server fetches all customers from the database, filtered by your current company_id (from token). It applies any search or pagination and returns a paginated list.
+
+**Beginner Tips** :
+- If the list is empty → create customers first (next example).
+- Use ?search= to find someone quickly.
+- Test in Postman: GET request, add Authorization header.
+- Common error: 403 Forbidden – need "view_customers" permission. 401 Unauthorized – token expired, login again.
+
+**Advanced Notes** : Supports sorting (?sort=name) and filtering (?email=example.com). For large customer bases, always use pagination.
+
+### Example 2: Create a Customer (POST /v1/customer)
+
+This is the most common action: adding a new client when someone buys for the first time or registers.
+
+**Required** :
+- name: Full name or business name (string). This is the main identifier.
+- phone: Phone number (string). Required in most cases for contact and delivery.
+
+**Optional** :
+- email: Email address (string, must be valid if provided).
+- address: Full address (string).
+
+cURL example:
+```bash
+curl -X POST "http://localhost:8000/v1/customer" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your_token>" \
+  -d '{
+    "name": "Marie Shop",
+    "phone": "+22998765432",
+    "email": "marie@shop.bj",
+    "address": "Fidjrossè, Cotonou, Benin"
+  }'
+```
+
+**Expected Response (201 Created)** :
+```json
+{
+  "id": "39XabcdeFgHijKlMnOpQrStUvWx",
+  "name": "Marie Shop",
+  "phone": "+22998765432",
+  "email": "marie@shop.bj",
+  "address": "Fidjrossè, Cotonou, Benin",
+  "created_at": "2026-02-12T16:45:00Z",
+  "updated_at": "2026-02-12T16:45:00Z"
+}
+```
+
+**Explanation of Response Properties** :
+- **id** : Unique Ksuid for the customer. This is what you'll use in orders (customer_id).
+- **name** : The name you provided.
+- **phone** : Phone number confirmed.
+- **email** : Email confirmed (if provided).
+- **address** : Address confirmed.
+- **created_at** / **updated_at** : Creation and update timestamps.
+
+**What This Does** : The server validates the input (e.g., phone/email format), checks for duplicates if needed, creates the customer in the database (scoped to your company), and returns the new record.
+
+**Beginner Tips** :
+- Phone is often the most important field for African markets (delivery, WhatsApp).
+- Test in Postman: POST request, JSON body, Authorization header.
+- Common error: 400 Validation error – name or phone missing. 403 – need "create_customer" permission.
+
+**Advanced Notes** : Email uniqueness can be enforced (check config). Add custom fields later (e.g., loyalty_points).
+
+### Example 3: Get Customer Details (GET /v1/customer/{id})
+
+This endpoint shows full info about one customer, including order history count (if implemented).
+
+**Required** :
+- Path: id (Ksuid of the customer).
+
+cURL example:
+```bash
+curl -X GET "http://localhost:8000/v1/customer/39XabcdeFgHijKlMnOpQrStUvWx" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Expected Response (200 OK)** :
+```json
+{
+  "id": "39XabcdeFgHijKlMnOpQrStUvWx",
+  "name": "Marie Shop",
+  "phone": "+22998765432",
+  "email": "marie@shop.bj",
+  "address": "Fidjrossè, Cotonou, Benin",
+  "orders_count": 3,
+  "created_at": "2026-02-12T16:45:00Z",
+  "updated_at": "2026-02-12T16:45:00Z"
+}
+```
+
+**Explanation of Response Properties** :
+- **id** : Ksuid of the customer.
+- **name**, **phone**, **email**, **address** : All details.
+- **orders_count** : Number of orders linked to this customer (useful for history).
+- **created_at** / **updated_at** : Timestamps.
+
+**What This Does** : The server fetches the customer by ID, checks your permission, and returns full details.
+
+**Beginner Tips** :
+- Use this before creating an order to check if the customer already exists.
+- Test in Postman: GET, replace {id} with real Ksuid.
+- Common error: 404 Not Found – wrong ID or customer in another company.
+
+**Advanced Notes** : Can be extended to return full order history (add ?include=orders).
+
+### Example 4: Update a Customer (PUT /v1/customer/{id})
+
+This endpoint lets you edit customer info (e.g., change phone or address).
+
+**Required** :
+- Path: id (Ksuid).
+- Body: at least one field to update (partial update).
+
+cURL example:
+```bash
+curl -X PUT "http://localhost:8000/v1/customer/39XabcdeFgHijKlMnOpQrStUvWx" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your_token>" \
+  -d '{
+    "phone": "+22999999999",
+    "address": "Updated address, Cotonou"
+  }'
+```
+
+**Expected Response (200 OK)** :
+```json
+{
+  "id": "39XabcdeFgHijKlMnOpQrStUvWx",
+  "name": "Marie Shop",
+  "phone": "+22999999999",
+  "email": "marie@shop.bj",
+  "address": "Updated address, Cotonou",
+  "updated_at": "2026-02-12T17:00:00Z"
+}
+```
+
+**Explanation of Response Properties** :
+- All fields returned with updated values.
+- **updated_at** : New timestamp showing last modification.
+
+**What This Does** : Updates only the fields you send (partial update), validates, and saves.
+
+**Beginner Tips** :
+- You can update one field or many.
+- Test in Postman: PUT request, JSON body.
+- Common error: 404 – wrong ID. 403 – need "update_customer".
+
+**Advanced Notes** : No full replacement – only changed fields are updated. Audit trail possible (log changes).
+
+## Was this page helpful?
+
+Your feedback helps us improve the documentation.
+
+<div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
+  <button
+    onClick={() => {
+      document.getElementById('feedback-yes-message').style.display = 'block';
+      document.getElementById('feedback-no-message').style.display = 'none';
+      setTimeout(() => {
+        document.getElementById('feedback-yes-message').style.display = 'none';
+      }, 4000);
+    }}
+    style={{
+      padding: '10px 24px',
+      color: '#16A34A',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontWeight: '600',
+      fontSize: '15px',
+    }}
+  >
+    Yes
+  </button>
+
+  <button
+    onClick={() => {
+      document.getElementById('feedback-no-message').style.display = 'block';
+      document.getElementById('feedback-yes-message').style.display = 'none';
+      setTimeout(() => {
+        document.getElementById('feedback-no-message').style.display = 'none';
+      }, 4000);
+    }}
+    style={{
+      padding: '10px 24px',
+      color: '#e53e3e',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontWeight: '600',
+      fontSize: '15px',
+    }}
+  >
+    No
+  </button>
+</div>
+
+{/* Message Yes */}
+<div 
+  id="feedback-yes-message" 
+  style={{ 
+    display: 'none', 
+    marginTop: '20px', 
+    padding: '12px 20px', 
+    backgroundColor: '#000702d6', 
+    borderRadius: '8px', 
+    border: 'none', 
+    color: '#16A34A', 
+    fontSize: '15px', 
+    fontWeight: '500',
+    textAlign: 'center'
+  }}
+>
+  Thank you! We're glad this helped
+</div>
+
+{/* Message No */}
+<div 
+  id="feedback-no-message" 
+  style={{ 
+    display: 'none', 
+    marginTop: '20px', 
+    padding: '12px 20px', 
+    backgroundColor: '#130101', 
+    borderRadius: '8px', 
+    border: 'none', 
+    color: '#991b1b', 
+    fontSize: '15px', 
+    fontWeight: '500',
+    textAlign: 'center'
+  }}
+>
+  Thanks for the feedback — we'll improve it!
+</div>
+```
