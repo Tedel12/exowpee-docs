@@ -1,0 +1,145 @@
+# Welcome to Exowpee API
+
+**Exowpee API** is the complete solution to automate and centralize the management of your business.
+
+This documentation covers **all endpoints** needed to integrate our platform into your applications, whether you're building a mobile app, a custom dashboard, an e-commerce frontend, a POS system, or connecting with third-party tools (accounting software, delivery partners, marketing platforms, etc.).
+
+Built with developers and businesses in mind, the API is:
+- **Multi-tenant** (each company has isolated data)
+- **Secure** (JWT Bearer authentication)
+- **Scalable** (from a single shop to a group with multiple branches)
+- **Well-documented** (beginner-friendly examples + full OpenAPI spec)
+
+## What is Exowpee used for?
+
+Exowpee is a modern, multi-tenant ERP platform designed specifically for African businesses. It centralizes everything you need to run a retail, wholesale or service business efficiently:
+
+- **Catalogue**  
+  Products, variants (sizes, colors, storage…), categories, dynamic pricing, vendors, locations
+
+- **Stock**  
+  Multi-location inventory, stock transfers, regularizations, low-stock alerts, real-time tracking
+
+- **Orders**  
+  Customer orders, quotes, status tracking (pending → approved → shipped → completed), credit sales
+
+- **Purchases**  
+  Suppliers management, purchase orders, partial deliveries, procurement workflow
+
+- **Accounting**  
+  Automatic ledger entries, sales & cost tracking, basic double-entry ready for expansion
+
+- **Identity & Teams**  
+  Multi-company support, user roles & permissions (RBAC), branches hierarchy, profile switching
+
+- **Reports**  
+  Sales analytics, best sellers, low stock, credit overview, product activity
+
+Built for scalability: from a single shop with 50 products to a group with multiple branches, warehouses, and companies.
+
+## Servers available
+
+| Environment   | Base URL                            | Authentication     | Notes                                      | Intended Use                          |
+|---------------|-------------------------------------|--------------------|--------------------------------------------|---------------------------------------|
+| Production    | `https://api.exowpee.com/v1`        | Bearer JWT         | Live environment – real customer data      | Production apps, live integrations    |
+| Development   | `http://localhost:8000/v1`          | Bearer JWT         | Local Laravel server (php artisan serve)   | Development, testing, debugging       |
+| Staging       | `https://staging.api.exowpee.com/v1`| Bearer JWT         | Pre-production (if available)              | Final QA before going live            |
+
+**Important** — Always use **HTTPS** in production. Never expose tokens or credentials in client-side code.
+
+## Quick start – 3 steps to get going
+
+### 1. Get an authentication token
+
+Most endpoints are protected. Start by logging in to obtain a Bearer JWT token.
+
+```bash
+curl -X POST https://api.exowpee.com/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@exowpee.com",
+    "password": "yourpassword"
+  }'
+```
+
+**Expected successful response (200 OK)**:
+```json
+{
+  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "token_type": "bearer",
+  "expires_in": 3600
+}
+```
+
+- `access_token`: Copy this value — it's your key for all protected requests
+- `token_type`: Always "bearer"
+- `expires_in`: Token lifetime in seconds (usually 3600 = 1 hour)
+
+**Tip**: Save the token in Postman as a collection variable (`{{token}}`) or in your code securely.
+
+### 2. Use the token in all requests
+
+Add this header to **every** protected API call:
+
+```
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+```
+
+Example:
+```bash
+curl -X GET https://api.exowpee.com/v1/catalog/categories \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### 3. Try a simple endpoint – list your categories
+
+```bash
+curl -X GET https://api.exowpee.com/v1/catalog/categories \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+**Expected response** (example):
+```json
+{
+  "data": [
+    {
+      "id": "39WgVV5nQL8KpD8LldXsHnUKkrW",
+      "title": "Smartphones",
+      "handle": "smartphones",
+      "sort_order": 1
+    },
+    {
+      "id": "39XabcdeFgHijKlMnOpQrStUvWx",
+      "title": "Accessories",
+      "handle": "accessories",
+      "sort_order": 2
+    }
+  ]
+}
+```
+
+Congratulations! You’ve just made your first authenticated API call.
+
+**Next steps**  
+→ Read the full [Authentication Guide](/authentication) to understand tokens, permissions, multi-company context, and refresh strategy  
+→ Explore the [Modules](/modules) to understand each feature in detail  
+→ Jump directly to the [API Reference](/api-reference) for full endpoint specs
+
+## Important security & best practices
+
+- **Never expose tokens** in client-side JavaScript (mobile/web frontend). Use backend proxy or short-lived tokens.
+- **Always validate responses** (check for 401/403 and refresh token if needed).
+- **Use HTTPS everywhere** in production.
+- **Respect rate limits** (not yet documented — coming soon).
+- **Test in development first** before touching production data.
+
+## Documentation automatically generated
+
+This documentation is powered by your OpenAPI specification and kept in sync with the codebase.  
+Last updated: February 2026.
+
+We regularly update examples, fix typos, and add new modules — check back often!
+
+Happy coding!  
+The Exowpee Team
+```

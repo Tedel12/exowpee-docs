@@ -1,0 +1,339 @@
+## Overview
+
+The TEAM module manages companies, branches, teams, and multi-tenant organization in Exowpee. Its primary purpose is to support businesses that operate multiple companies, branches, or teams, while maintaining strict data isolation (multi-tenancy). It allows creating a main company, adding child branches (subsidiaries, stores, departments), managing hierarchical structure, and resolving the "current company context" for each user session.
+
+For complete beginners: Imagine you own several shops or businesses (e.g., one in Cotonou, one in Porto-Novo, and a wholesale branch). The TEAM module lets you:
+- Create your main company
+- Add branches/stores as "children"
+- Assign users to specific companies or branches
+- Make sure that when a user logs in, they only see data from their current company (no mixing between shops)
+- Upload logos per company
+- Handle hierarchical organization (parent company → child branches)
+
+This is what makes Exowpee "multi-company ready". Every other module (Catalog, Orders, Customers, Ledger) automatically works only on data from the user's current company.
+
+- **Key Objectives**:
+  - Create and manage companies and their hierarchical structure (main + children/branches).
+  - Assign users to companies and resolve their current context (which company they are working in).
+  - Support branding per company (logos, names, settings).
+  - Ensure strict data isolation (multi-tenancy) – no company can see another's data.
+  - Provide flexibility for small businesses (one company) and large groups (many branches).
+
+For beginners: When you log in, the system automatically sets your "current company" based on your profile. All your actions (creating products, orders, etc.) happen only in that company. If you need to switch to another company (e.g., from main shop to branch), you change your active profile (via IAM). This prevents mistakes like selling stock from the wrong shop.
+
+- **How it Fits in Exowpee**:
+  - **IAM**: Links users to companies via profiles. Permissions and context are per company.
+  - **CATALOG / ORDER / CUSTOMER / LEDGER**: All data is filtered by company_id from the user's current context.
+  - Multi-tenant everywhere: Every table has a company_id column – enforced automatically.
+  - Logo management: Each company can have its own logo (uploaded via POST /company/set/logo).
+
+- **Why It's Important for Developers**:
+  - Company IDs are Ksuid strings (27 characters, e.g., "39WSvi21oTnZN8i028Y80FTNT1x").
+  - The server resolves company_id automatically from the JWT token (current_user_profile).
+  - Beginners: You almost never need to send company_id in requests – it's handled for you.
+
+## Roles & Permissions (RBAC)
+
+The TEAM module uses IAM's RBAC system. Permissions are very restricted because companies are the root of data isolation.
+
+- **Roles** : Typical roles include "Super Admin" (manage all companies), "Company Admin" (manage own company and branches), "Branch Manager" (limited to their branch).
+- **Permissions** : Very few users should have these.
+
+Common permissions for TEAM:
+- `view_companies` : List companies and branches.
+- `create_company` : Create new main companies or branches.
+- `update_company` : Edit company details (name, phone, address, logo).
+- `manage_branches` : Create/update/delete child branches.
+- `manage_company_settings` : Change company-specific settings (tax, currency, etc.).
+
+Example roles:
+- **Super Admin** : All permissions (create, update, delete companies/branches).
+- **Company Admin** : view_companies, create_company (branches), update_company, manage_branches (for their main company).
+- **Branch Manager** : view_companies (their branch only), limited update.
+- **Regular User** : No TEAM permissions – they just work in their assigned company.
+
+For beginners: Most users should never see or manage companies – they just use the one they're assigned to. If you get 403 Forbidden when trying to create a company, you need "create_company" permission. Only top-level admins have it.
+
+For developers: Permissions are enforced server-side. Company creation often triggers automatic user profile creation (via IAM integration).
+
+## Endpoints
+
+The TEAM module has a few key routes for managing companies and branches. All are protected with Bearer JWT. Scoped to current user permissions.
+
+| Method | URL | Description | Required Params / Body | Example Response | Required Permissions |
+| --- | --- | --- | --- | --- | --- |
+| GET | `/v1/company` | List companies | `?is_main=true` (optional) | `{"data": [{"id": string, "name": "Main", "is_main": true}], "meta": {"total": 3}}` | `view_companies` |
+| POST | `/v1/company` | Create main company | `{"name": string, "user_name": string, "user_email": string}` | `{"id": string, "name": "New Company", "is_main": true}` | `create_company` |
+| POST | `/v1/company/{id}/children` | Create child branch | `id` (Ksuid); `{"name": string, "address": string}` | `{"id": string, "name": "Cotonou Branch", "parent": {"id": "id"}}` | `manage_branches` |
+| POST | `/v1/company/set/logo` | Upload/update logo | `multipart/form-data` (logo binary) | `200 OK {"logo": {"url": "https://..."}}` | `update_company` |
+| GET | `/v1/company/{id}` | Get company details | `id` (Ksuid) | `{"id": string, "name": "Main", "logo": {"url": string}, "children_count": 2}` | `view_companies` |
+
+**Lien vers API Reference** : See [API Reference > Company](/api-reference/company) for technical details.
+
+## Examples of Use
+
+Let's walk through each endpoint step by step with full cURL examples, explanations, and beginner tips.
+
+### Example 1: List Companies (GET /v1/company)
+
+This endpoint shows all companies and branches you have access to (usually your main company + its children).
+
+**Required** : Nothing – just the token.
+
+**Optional** :
+- ?is_main=true : Show only main companies.
+
+cURL example:
+```bash
+curl -X GET "http://localhost:8000/v1/company" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Expected Response (200 OK)** :
+```json
+{
+  "data": [
+    {
+      "id": "39WSvi21oTnZN8i028Y80FTNT1x",
+      "name": "Exowpee Main",
+      "tax_registration_number": "1234567890",
+      "business_registration_number": "RCCM BJ ABC123",
+      "address": "Cotonou, Littoral, Benin",
+      "phone_number": "+22912345678",
+      "is_main": true,
+      "parent": null,
+      "uuid": "some-uuid",
+      "is_active": true,
+      "logo": {
+        "url": "https://storage.exowpee.com/logos/main.png"
+      },
+      "subscription_on": "2026-01-01T00:00:00Z",
+      "trial_end": null,
+      "next_billing": "2026-03-01T00:00:00Z",
+      "children_count": 2,
+      "enable_mecef": true,
+      "enable_ecom": false,
+      "enable_label_generator": true
+    },
+    {
+      "id": "39XabcdeFgHijKlMnOpQrStUvWx",
+      "name": "Cotonou Branch",
+      "is_main": false,
+      "parent": { "id": "39WSvi21oTnZN8i028Y80FTNT1x" },
+      "children_count": 0
+    }
+  ],
+  "meta": {
+    "total": 2
+  }
+}
+```
+
+**Explanation of Response Properties** :
+- **data** : Array of company objects. Each company has:
+  - **id** : Unique Ksuid.
+  - **name** : Company or branch name.
+  - **tax_registration_number** / **business_registration_number** : Official registration numbers (for tax/invoicing).
+  - **address** / **phone_number** : Contact info.
+  - **is_main** : true for the parent company, false for branches.
+  - **parent** : If it's a branch, reference to parent company.
+  - **logo** : URL to the company logo.
+  - **children_count** : Number of branches under this company.
+  - **enable_mecef** / **enable_ecom** / **enable_label_generator** : Feature flags per company.
+- **meta** : Total count.
+
+**What This Does** : Fetches companies based on your permissions and current context.
+
+**Beginner Tips** :
+- Use this to see your company structure.
+- Test in Postman: GET request.
+- Common error: 403 – need "view_companies".
+
+**Advanced Notes** : Supports hierarchical queries (parent/children).
+
+### Example 2: Create a Main Company (POST /v1/company)
+
+This creates a new main company (rare – usually done during onboarding).
+
+**Required** :
+- name
+- user_name / user_email (for initial admin user)
+
+cURL example:
+```bash
+curl -X POST "http://localhost:8000/v1/company" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your_token>" \
+  -d '{
+    "name": "New Group Company",
+    "tax_registration_number": "9876543210",
+    "business_registration_number": "RCCM BJ XYZ456",
+    "phone_number": "+22998765432",
+    "user_name": "Group Admin",
+    "user_email": "admin@newgroup.bj"
+  }'
+```
+
+**Expected Response (201 Created)** :
+```json
+{
+  "id": "39NewCompanyKsuidHere",
+  "name": "New Group Company",
+  "tax_registration_number": "9876543210",
+  "is_main": true,
+  "children_count": 0
+}
+```
+
+**Explanation** : Creates company + initial admin profile.
+
+**Beginner Tips** : Usually done once per group.
+
+### Example 3: Create a Branch (POST /v1/company/{company_id}/children)
+
+This adds a branch under a parent company.
+
+**Required** :
+- Path: company_id (parent)
+- Body: name
+
+cURL example:
+```bash
+curl -X POST "http://localhost:8000/v1/company/39WSvi21oTnZN8i028Y80FTNT1x/children" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your_token>" \
+  -d '{
+    "name": "Porto-Novo Branch",
+    "address": "Porto-Novo, Benin"
+  }'
+```
+
+**Expected Response (201 Created)** :
+```json
+{
+  "id": "39BranchKsuidHere",
+  "name": "Porto-Novo Branch",
+  "parent": { "id": "39WSvi21oTnZN8i028Y80FTNT1x" },
+  "is_main": false
+}
+```
+
+**Explanation** : Creates child company linked to parent.
+
+**Beginner Tips** : Use parent id from GET /v1/company.
+
+### Example 4: Upload Company Logo (POST /v1/company/set/logo)
+
+This uploads/updates the logo for the current company.
+
+**Required** :
+- multipart/form-data with "logo" field (image file: png, jpg, etc.)
+
+cURL example:
+```bash
+curl -X POST "http://localhost:8000/v1/company/set/logo" \
+  -H "Authorization: Bearer <your_token>" \
+  -F "logo=@/path/to/logo.png"
+```
+
+**Expected Response (200 OK)** :
+```json
+{
+  "logo": {
+    "url": "https://storage.exowpee.com/logos/39WSvi21oTnZN8i028Y80FTNT1x.png"
+  }
+}
+```
+
+**Explanation** : Uploads file and returns public URL.
+
+**Beginner Tips** : Use Postman for file upload (form-data).
+
+**Common error** : 400 – invalid file type/size.
+
+## Was this page helpful?
+
+Your feedback helps us improve the documentation.
+
+<div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
+  <button
+    onClick={() => {
+      document.getElementById('feedback-yes-message').style.display = 'block';
+      document.getElementById('feedback-no-message').style.display = 'none';
+      setTimeout(() => {
+        document.getElementById('feedback-yes-message').style.display = 'none';
+      }, 4000);
+    }}
+    style={{
+      padding: '10px 24px',
+      color: '#16A34A',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontWeight: '600',
+      fontSize: '15px',
+    }}
+  >
+    Yes
+  </button>
+
+  <button
+    onClick={() => {
+      document.getElementById('feedback-no-message').style.display = 'block';
+      document.getElementById('feedback-yes-message').style.display = 'none';
+      setTimeout(() => {
+        document.getElementById('feedback-no-message').style.display = 'none';
+      }, 4000);
+    }}
+    style={{
+      padding: '10px 24px',
+      color: '#e53e3e',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontWeight: '600',
+      fontSize: '15px',
+    }}
+  >
+    No
+  </button>
+</div>
+
+{/* Message Yes */}
+<div 
+  id="feedback-yes-message" 
+  style={{ 
+    display: 'none', 
+    marginTop: '20px', 
+    padding: '12px 20px', 
+    backgroundColor: '#000702d6', 
+    borderRadius: '8px', 
+    border: 'none', 
+    color: '#16A34A', 
+    fontSize: '15px', 
+    fontWeight: '500',
+    textAlign: 'center'
+  }}
+>
+  Thank you! We're glad this helped
+</div>
+
+{/* Message No */}
+<div 
+  id="feedback-no-message" 
+  style={{ 
+    display: 'none', 
+    marginTop: '20px', 
+    padding: '12px 20px', 
+    backgroundColor: '#130101', 
+    borderRadius: '8px', 
+    border: 'none', 
+    color: '#991b1b', 
+    fontSize: '15px', 
+    fontWeight: '500',
+    textAlign: 'center'
+  }}
+>
+  Thanks for the feedback — we'll improve it!
+</div>
+```
