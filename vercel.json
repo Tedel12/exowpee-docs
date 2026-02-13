@@ -1,6 +1,16 @@
 {
-  "framework": null,
-  "installCommand": "npm ci",
-  "buildCommand": "npx mint build",
-  "outputDirectory": "dist"
+  "version": 2,
+  "builds": [
+    {
+      "src": "docs.json",
+      "use": "@mintlify/mintlify"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "outputDirectory": ".mintlify/public"
 }
