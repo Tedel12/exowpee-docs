@@ -1,0 +1,14 @@
+## Roles & Permissions (RBAC)
+
+IAM uses a Role-Based Access Control (RBAC) system to define what users can do. Roles are groups of permissions, and permissions are specific actions (e.g., "view_orders").
+
+- **Roles** : Pre-defined groups like "Admin" (full access), "Manager" (create/update), "User" (read-only). You can create custom roles.
+- **Permissions** : Fine-grained rights, e.g., "manage_roles" (create/edit roles), "view_profiles" (list user profiles).
+- **Multi-tenant Support** : Permissions are scoped to the user's current company profile. A user can switch profiles to change companies and permissions.
+
+Example roles:
+- **Admin** : All permissions, including managing users, roles, and companies.
+- **Manager** : Can view, create, and update (e.g., manage_catalog, create_order).
+- **User** : Limited to view-only (e.g., view_orders, view_catalog).
+
+For beginners: Roles are like job titles (admin is the boss, manager is the supervisor, user is the employee). Permissions are the tasks they can perform. To check your permissions, use GET /v1/auth/me after login.

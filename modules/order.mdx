@@ -20,8 +20,6 @@ It also handles credit sales (customer pays later) and partial payments.
   - Ensure stock updates (decrease stock on order creation/confirmation).
   - Integrate with accounting (ledger entries for sales).
 
-For beginners: You start by creating an order (link a customer + products). Then, confirm it (approve the sale). When delivered, mark as completed. If something goes wrong (wrong item, no stock), you can reject or cancel. The system automatically updates stock levels (from Catalog) and can generate accounting entries (for Ledger).
-
 - **How it Fits in Exowpee**:
   - **IAM**: Controls who can create/view/update orders (permissions like create_order, update_order).
   - **CATALOG**: Pulls products/variants/stock. Stock decreases when order is confirmed.
@@ -35,12 +33,6 @@ For beginners: You start by creating an order (link a customer + products). Then
   - Status changes trigger events (e.g., stock update, ledger entry).
   - Beginners: Don't worry about Ksuid – generated automatically. Just use them in paths.
 
-## Roles & Permissions (RBAC)
-
-The Order module uses IAM's RBAC system. Permissions are specific to order actions and scoped to the user's company profile.
-
-- **Roles** : Typical roles include "Admin" (full control), "Sales Manager" (create/update), "Cashier" (create/view), "Delivery" (update status to shipped/completed).
-- **Permissions** : Granular rights for orders.
 
 Common permissions for Order:
 - `view_orders` : List and view order details.
@@ -58,31 +50,18 @@ Example roles:
 - **Cashier** : view_orders, create_order (for quick sales).
 - **Delivery Person** : update_order (mark shipped/completed).
 
-For beginners: If you get 403 Forbidden when creating an order, you need "create_order" permission. Check with GET /v1/auth/me. Ask an admin to add it via IAM.
-
-For developers: Permissions are enforced server-side. Custom permissions can be added in code. In multi-tenant, orders are filtered by company_id from token.
 
 ## Endpoints
 
 The Order module has 6 main routes (CRUD + custom actions). All are protected with Bearer JWT. Scoped to current company.
 
-| Method | URL | Description | Required Params / Body | Example Response | Required Permissions |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/v1/order` | List all orders | `?status=pending` (optional) | `{"data": [{"id": string, "status": "pending"}], "meta": {"total": 10}}` | `view_orders` |
-| POST | `/v1/order` | Create a new order | `{"customer_id": string, "items": array, "is_credit": bool}` | `{"id": string, "total": 185000, "status": "pending"}` | `create_order` |
-| POST | `/v1/order/confirm/{id}` | Confirm order | `id` (Ksuid) | `200 OK` | `confirm_order` |
-| POST | `/v1/order/reject/{id}` | Reject order | `id` (Ksuid) | `200 OK` | `reject_order` |
-| POST | `/v1/order/cancel/action/{id}` | Abort cancellation | `id` (Ksuid) | `200 OK` | `cancel_order` |
-| POST | `/v1/order/completed/{id}` | Mark as completed | `id` (Ksuid) | `200 OK` | `complete_order` |
-| GET | `/v1/order/cashing/{status}` | Get cashing report | `status` (string) | `{"data": [{"order_id": string, "amount": int}]}` | `view_cashing` |
-
-**Lien vers API Reference** : See [API Reference > Order](/api-reference/order) for technical details.
+See [API Reference > Order](/api-reference/order) for technical details and API tests.
 
 ## Examples of Use
 
 Let's go through each endpoint with full cURL examples, line-by-line explanations, response breakdown, and beginner tips.
 
-### Example 1: List Orders (GET /v1/order)
+### Example : List Orders (GET /v1/order)
 
 This endpoint shows all orders in your current company. It's useful for seeing pending orders, completed sales, or daily activity.
 
@@ -150,190 +129,10 @@ curl -X GET "http://localhost:8000/v1/order?status=pending" \
 
 **What This Does** : Fetches orders from the database, scoped to your company, applies filters/pagination, and returns them.
 
-**Beginner Tips** :
-- Use ?status=pending to see orders to approve.
-- Test in Postman: GET request, add query params.
-- Common error: 403 – need "view_orders". 401 – token expired.
 
 **Advanced Notes** : Supports sorting (?sort=total:desc) and filtering (?customer_id=Ksuid).
 
-### Example 2: Create an Order (POST /v1/order)
-
-This is the main action: recording a sale.
-
-**Required** :
-- customer_id: Ksuid of the customer (required).
-- items: Array of line items (required). Each item: `{"variation_id": Ksuid, "quantity": int, "price": int}`
-
-
-**Optional** :
-- is_credit: Boolean (true for credit sale).
-- note: String for notes.
-
-cURL example:
-```bash
-curl -X POST "http://localhost:8000/v1/order" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <your_token>" \
-  -d '{
-    "customer_id": "39XabcdeFgHijKlMnOpQrStUvWx",
-    "items": [
-      {
-        "variation_id": "39Wl5y69NtOyiqQGYjEwg4zMRYD",
-        "quantity": 2,
-        "price": 185000
-      }
-    ],
-    "is_credit": false,
-    "note": "Customer wants fast delivery"
-  }'
-```
-
-**Expected Response (201 Created)** :
-```json
-{
-  "id": "39WSvi21oTnZN8i028Y80FTNT1x",
-  "customer_id": "39XabcdeFgHijKlMnOpQrStUvWx",
-  "total": 370000,
-  "tax_total": 0,
-  "discount": 0,
-  "charge": 0,
-  "is_credit": false,
-  "status": "pending",
-  "note": "Customer wants fast delivery",
-  "company_id": "39WSvi21oTnZN8i028Y80FTNT1x",
-  "line_items": [
-    {
-      "id": string,
-      "variation_id": "39Wl5y69NtOyiqQGYjEwg4zMRYD",
-      "quantity": 2,
-      "price": 185000,
-      "subtotal": 370000
-    }
-  ],
-  "created_at": "2026-02-12T17:00:00Z",
-  "updated_at": "2026-02-12T17:00:00Z"
-}
-```
-
-**Explanation of Response Properties** :
-- **id** : Unique Ksuid for the order.
-- **customer_id** : Linked customer.
-- **total** : Grand total (sum of line items).
-- **tax_total** / **discount** / **charge** : Breakdown.
-- **is_credit** : True if credit.
-- **status** : Starts as "pending".
-- **note** : Your note.
-- **line_items** : Array of items with subtotal per line.
-- **company_id** : Company scope.
-- **created_at** / **updated_at** : Timestamps.
-
-**What This Does** : Validates items (variation exists, stock enough if tracked), creates the order, calculates totals, and returns it.
-
-**Beginner Tips** :
-- Get variation_id from Catalog (GET /v1/catalog/products).
-- Test in Postman: POST, JSON body.
-- Common error: 422 – invalid variation_id or stock insufficient.
-
-**Advanced Notes** : Triggers stock decrease on confirmation (not on creation).
-
-### Example 3: Confirm an Order (POST /v1/order/confirm/{id})
-
-This moves the order from pending to approved, often triggering stock decrease and ledger entry.
-
-**Required** :
-- Path: id (Ksuid of the order).
-
-cURL example:
-```bash
-curl -X POST "http://localhost:8000/v1/order/confirm/39WSvi21oTnZN8i028Y80FTNT1x" \
-  -H "Authorization: Bearer <your_token>"
-```
-
-**Expected Response (200 OK)** :
-```json
-{
-  "id": "39WSvi21oTnZN8i028Y80FTNT1x",
-  "status": "approved",
-  "updated_at": "2026-02-12T17:10:00Z"
-}
-```
-
-**Explanation** : Status changes to "approved". Stock is decreased (if tracked). Ledger entry may be created.
-
-**Beginner Tips** : Use this after checking payment/stock.
-
-**Common error** : 403 – need "confirm_order".
-
-### Example 4: Reject an Order (POST /v1/order/reject/{id})
-
-Rejects a pending order (e.g., out of stock, invalid payment).
-
-cURL example:
-```bash
-curl -X POST "http://localhost:8000/v1/order/reject/39WSvi21oTnZN8i028Y80FTNT1x" \
-  -H "Authorization: Bearer <your_token>"
-```
-
-**Expected Response (200 OK)** :
-```json
-{
-  "id": "39WSvi21oTnZN8i028Y80FTNT1x",
-  "status": "rejected",
-  "updated_at": "2026-02-12T17:15:00Z"
-}
-```
-
-**Explanation** : Status to "rejected". No stock change.
-
-### Example 5: Mark as Completed (POST /v1/order/completed/{id})
-
-Marks order as completed (delivered/paid).
-
-cURL example:
-```bash
-curl -X POST "http://localhost:8000/v1/order/completed/39WSvi21oTnZN8i028Y80FTNT1x" \
-  -H "Authorization: Bearer <your_token>"
-```
-
-**Expected Response (200 OK)** :
-```json
-{
-  "id": "39WSvi21oTnZN8i028Y80FTNT1x",
-  "status": "completed",
-  "updated_at": "2026-02-12T17:20:00Z"
-}
-```
-
-**Explanation** : Status to "completed". Final accounting entry.
-
-### Example 6: Get Cashing by Status (GET /v1/order/cashing/{status})
-
-Shows cashing report for a status (e.g., pending payments).
-
-cURL example:
-```bash
-curl -X GET "http://localhost:8000/v1/order/cashing/pending" \
-  -H "Authorization: Bearer <your_token>"
-```
-
-**Expected Response (200 OK)** :
-```json
-{
-  "data": [
-    {
-      "order_id": "39WSvi21oTnZN8i028Y80FTNT1x",
-      "amount": 185000,
-      "customer_id": string,
-      "due_date": string
-    }
-  ]
-}
-```
-
-**Explanation** : List of orders with pending/completed cashing.
-
-**Beginner Tips** : Use for daily cash reports.
+**Link to API Reference** : See [API Reference > Order](/api-reference) for technical details.
 
 ## Was this page helpful?
 

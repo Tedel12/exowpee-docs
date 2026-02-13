@@ -27,17 +27,7 @@ For beginners: When you log in, the system automatically sets your "current comp
   - Multi-tenant everywhere: Every table has a company_id column – enforced automatically.
   - Logo management: Each company can have its own logo (uploaded via POST /company/set/logo).
 
-- **Why It's Important for Developers**:
-  - Company IDs are Ksuid strings (27 characters, e.g., "39WSvi21oTnZN8i028Y80FTNT1x").
-  - The server resolves company_id automatically from the JWT token (current_user_profile).
-  - Beginners: You almost never need to send company_id in requests – it's handled for you.
 
-## Roles & Permissions (RBAC)
-
-The TEAM module uses IAM's RBAC system. Permissions are very restricted because companies are the root of data isolation.
-
-- **Roles** : Typical roles include "Super Admin" (manage all companies), "Company Admin" (manage own company and branches), "Branch Manager" (limited to their branch).
-- **Permissions** : Very few users should have these.
 
 Common permissions for TEAM:
 - `view_companies` : List companies and branches.
@@ -52,29 +42,18 @@ Example roles:
 - **Branch Manager** : view_companies (their branch only), limited update.
 - **Regular User** : No TEAM permissions – they just work in their assigned company.
 
-For beginners: Most users should never see or manage companies – they just use the one they're assigned to. If you get 403 Forbidden when trying to create a company, you need "create_company" permission. Only top-level admins have it.
-
-For developers: Permissions are enforced server-side. Company creation often triggers automatic user profile creation (via IAM integration).
 
 ## Endpoints
 
 The TEAM module has a few key routes for managing companies and branches. All are protected with Bearer JWT. Scoped to current user permissions.
 
-| Method | URL | Description | Required Params / Body | Example Response | Required Permissions |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/v1/company` | List companies | `?is_main=true` (optional) | `{"data": [{"id": string, "name": "Main", "is_main": true}], "meta": {"total": 3}}` | `view_companies` |
-| POST | `/v1/company` | Create main company | `{"name": string, "user_name": string, "user_email": string}` | `{"id": string, "name": "New Company", "is_main": true}` | `create_company` |
-| POST | `/v1/company/{id}/children` | Create child branch | `id` (Ksuid); `{"name": string, "address": string}` | `{"id": string, "name": "Cotonou Branch", "parent": {"id": "id"}}` | `manage_branches` |
-| POST | `/v1/company/set/logo` | Upload/update logo | `multipart/form-data` (logo binary) | `200 OK {"logo": {"url": "https://..."}}` | `update_company` |
-| GET | `/v1/company/{id}` | Get company details | `id` (Ksuid) | `{"id": string, "name": "Main", "logo": {"url": string}, "children_count": 2}` | `view_companies` |
-
-**Lien vers API Reference** : See [API Reference > Company](/api-reference/company) for technical details.
+**Link to API Reference** : See [API Reference > Company](/api-reference) for technical details.
 
 ## Examples of Use
 
 Let's walk through each endpoint step by step with full cURL examples, explanations, and beginner tips.
 
-### Example 1: List Companies (GET /v1/company)
+### Example : List Companies (GET /v1/company)
 
 This endpoint shows all companies and branches you have access to (usually your main company + its children).
 
@@ -144,112 +123,12 @@ curl -X GET "http://localhost:8000/v1/company" \
 
 **What This Does** : Fetches companies based on your permissions and current context.
 
-**Beginner Tips** :
-- Use this to see your company structure.
-- Test in Postman: GET request.
-- Common error: 403 – need "view_companies".
 
 **Advanced Notes** : Supports hierarchical queries (parent/children).
 
-### Example 2: Create a Main Company (POST /v1/company)
-
-This creates a new main company (rare – usually done during onboarding).
-
-**Required** :
-- name
-- user_name / user_email (for initial admin user)
-
-cURL example:
-```bash
-curl -X POST "http://localhost:8000/v1/company" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <your_token>" \
-  -d '{
-    "name": "New Group Company",
-    "tax_registration_number": "9876543210",
-    "business_registration_number": "RCCM BJ XYZ456",
-    "phone_number": "+22998765432",
-    "user_name": "Group Admin",
-    "user_email": "admin@newgroup.bj"
-  }'
-```
-
-**Expected Response (201 Created)** :
-```json
-{
-  "id": "39NewCompanyKsuidHere",
-  "name": "New Group Company",
-  "tax_registration_number": "9876543210",
-  "is_main": true,
-  "children_count": 0
-}
-```
-
-**Explanation** : Creates company + initial admin profile.
-
-**Beginner Tips** : Usually done once per group.
-
-### Example 3: Create a Branch (POST /v1/company/{company_id}/children)
-
-This adds a branch under a parent company.
-
-**Required** :
-- Path: company_id (parent)
-- Body: name
-
-cURL example:
-```bash
-curl -X POST "http://localhost:8000/v1/company/39WSvi21oTnZN8i028Y80FTNT1x/children" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <your_token>" \
-  -d '{
-    "name": "Porto-Novo Branch",
-    "address": "Porto-Novo, Benin"
-  }'
-```
-
-**Expected Response (201 Created)** :
-```json
-{
-  "id": "39BranchKsuidHere",
-  "name": "Porto-Novo Branch",
-  "parent": { "id": "39WSvi21oTnZN8i028Y80FTNT1x" },
-  "is_main": false
-}
-```
-
-**Explanation** : Creates child company linked to parent.
-
-**Beginner Tips** : Use parent id from GET /v1/company.
-
-### Example 4: Upload Company Logo (POST /v1/company/set/logo)
-
-This uploads/updates the logo for the current company.
-
-**Required** :
-- multipart/form-data with "logo" field (image file: png, jpg, etc.)
-
-cURL example:
-```bash
-curl -X POST "http://localhost:8000/v1/company/set/logo" \
-  -H "Authorization: Bearer <your_token>" \
-  -F "logo=@/path/to/logo.png"
-```
-
-**Expected Response (200 OK)** :
-```json
-{
-  "logo": {
-    "url": "https://storage.exowpee.com/logos/39WSvi21oTnZN8i028Y80FTNT1x.png"
-  }
-}
-```
-
-**Explanation** : Uploads file and returns public URL.
-
-**Beginner Tips** : Use Postman for file upload (form-data).
-
 **Common error** : 400 – invalid file type/size.
+
+See [API Reference > Company](/api-reference) for technical details and API tests.
 
 ## Was this page helpful?
 

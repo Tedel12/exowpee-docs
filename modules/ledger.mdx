@@ -34,12 +34,6 @@ For beginners: You don't need to be an accountant to use this module. The system
   - Entries are double-entry (debit and credit must balance).
   - Beginners: Don't worry about Ksuid – generated automatically. Focus on linking events (order_id, purchase_id) to entries.
 
-## Roles & Permissions (RBAC)
-
-The Ledger module uses IAM's RBAC system. Permissions are strict because accounting data is sensitive.
-
-- **Roles** : Typical roles include "Admin/Owner" (full access), "Accountant" (view + create manual entries), "Sales Manager" (view only), "Cashier" (view cash reports).
-- **Permissions** : Granular and often restricted.
 
 Common permissions for Ledger:
 - `view_ledger` : View entries and reports.
@@ -63,24 +57,13 @@ For developers: Permissions are checked server-side. Manual entries should be lo
 
 The Ledger module is in early stage, with structure ready but few endpoints defined in openapi.json. Below are typical/future endpoints for a complete accounting system. You can implement them one by one.
 
-| Method | URL | Description | Required Params / Body | Example Response | Required Permissions |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/v1/ledger/entries` | List accounting entries | `?date_from`, `?type=sale` | `{"data": [{"id": string, "amount": 185000}], "meta": {"total": 50}}` | `view_ledger` |
-| GET | `/v1/ledger/entries/{id}` | Get entry details | `id` (Ksuid) | `{"id": string, "amount": 185000, "debit_account": "Cash"}` | `view_ledger` |
-| POST | `/v1/ledger/entries` | Create manual entry | `{"type": string, "amount": number, "debit_account": string}` | `{"id": string, "type": "manual", "amount": 50000}` | `create_ledger_entry` |
-| GET | `/v1/ledger/reports/sales` | Sales report | `?start_date=2026-01-01` | `{"total_sales": 500000, "tax_collected": 25000}` | `view_ledger_reports` |
-| GET | `/v1/ledger/reports/cash_flow` | Cash flow summary | `?period=monthly` | `{"inflows": 600000, "outflows": 400000, "net_cash": 200000}` | `view_ledger_reports` |
-| GET | `/v1/ledger/reports/balance_sheet` | Balance sheet | None | `{"assets": {"cash": 300000}, "liabilities": {"payables": 100000}}` | `view_ledger_reports` |
-
-**Note**: Automatic entries are triggered by other modules (e.g., ORDER confirmation creates sale entry). Manual creation is for corrections or special cases.
-
-**Lien vers API Reference** : See [API Reference > Ledger](/api-reference/ledger) for technical details (expand as you implement).
+**Link to API Reference** : See [API Reference > Ledger](/api-reference/ledger) for technical details (expand as you implement).
 
 ## Examples of Use
 
 Since Ledger is in early stage, examples are based on future/standard endpoints. We’ll explain how it works automatically + manual use.
 
-### Example 1: View Ledger Entries (GET /v1/ledger/entries)
+### Example : View Ledger Entries (GET /v1/ledger/entries)
 
 This endpoint lists all accounting entries (automatic + manual). It's useful for seeing what happened financially.
 
@@ -145,133 +128,9 @@ curl -X GET "http://localhost:8000/v1/ledger/entries" \
 
 **What This Does** : Fetches entries from the database, scoped to your company, applies filters, and returns paginated list.
 
-**Beginner Tips** :
-- Use ?type=sale to see all sales revenue.
-- Test in Postman: GET request, add query params.
-- Common error: 403 – need "view_ledger". Empty data? No transactions yet.
-
 **Advanced Notes** : Entries are immutable (no update/delete in most cases). Use adjustments for corrections.
 
-### Example 2: View Sales Report (GET /v1/ledger/reports/sales)
-
-This endpoint gives a summary of sales (revenue, tax, profit) – very useful for daily/monthly tracking.
-
-**Required** : Nothing.
-
-**Optional** :
-- ?start_date=2026-01-01
-- ?end_date=2026-02-12
-
-cURL example:
-```bash
-curl -X GET "http://localhost:8000/v1/ledger/reports/sales?start_date=2026-02-01&end_date=2026-02-12" \
-  -H "Authorization: Bearer <your_token>"
-```
-
-**Expected Response (200 OK)** :
-```json
-{
-  "total_sales": 750000,
-  "tax_collected": 37500,
-  "discounts_given": 15000,
-  "net_revenue": 712500,
-  "cost_of_goods": 450000,
-  "gross_profit": 262500,
-  "period": "2026-02-01 to 2026-02-12"
-}
-```
-
-**Explanation of Response Properties** :
-- **total_sales** : Total money from sales before tax/discount.
-- **tax_collected** : Tax amount collected.
-- **discounts_given** : Discounts applied.
-- **net_revenue** : Sales after tax/discount.
-- **cost_of_goods** : Cost of products sold.
-- **gross_profit** : Profit before expenses (net_revenue - cost_of_goods).
-- **period** : Date range used.
-
-**What This Does** : Aggregates order data from ORDER module, calculates totals, and returns summary.
-
-**Beginner Tips** :
-- Use this daily to see how much you sold.
-- Test in Postman: GET with date params.
-- Common error: 403 – need "view_ledger_reports".
-
-**Advanced Notes** : Can be extended for per-product sales, per-customer.
-
-### Example 3: Manual Entry (POST /v1/ledger/entries) – Advanced / Future
-
-This is for manual adjustments (rare, for accountants).
-
-**Required** :
-- type, amount, debit_account, credit_account, description.
-
-cURL example:
-```bash
-curl -X POST "http://localhost:8000/v1/ledger/entries" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <your_token>" \
-  -d '{
-    "type": "adjustment",
-    "amount": 5000,
-    "debit_account": "Cash",
-    "credit_account": "Miscellaneous Expense",
-    "description": "Cash expense for office supplies",
-    "reference_id": "receipt_123"
-  }'
-```
-
-**Expected Response (201 Created)** :
-```json
-{
-  "id": "39LedgerEntryKsuidHere",
-  "type": "adjustment",
-  "amount": 5000,
-  "debit_account": "Cash",
-  "credit_account": "Miscellaneous Expense",
-  "description": "Cash expense for office supplies",
-  "reference_id": "receipt_123",
-  "created_at": "2026-02-12T17:30:00Z"
-}
-```
-
-**Explanation** : Creates a manual double-entry.
-
-**Beginner Tips** : Avoid manual entries unless you know accounting. Use automatic ones from other modules.
-
-**Common error** : 403 – need "create_ledger_entry".
-
-### Example 4: Balance Sheet Report (GET /v1/ledger/reports/balance_sheet)
-
-Shows assets, liabilities, equity at a point in time.
-
-cURL example:
-```bash
-curl -X GET "http://localhost:8000/v1/ledger/reports/balance_sheet" \
-  -H "Authorization: Bearer <your_token>"
-```
-
-**Expected Response** :
-```json
-{
-  "assets": {
-    "cash": 300000,
-    "inventory": 450000,
-    "accounts_receivable": 120000,
-    "total_assets": 870000
-  },
-  "liabilities": {
-    "accounts_payable": 200000,
-    "total_liabilities": 200000
-  },
-  "equity": 670000,
-  "as_of": "2026-02-12"
-}
-```
-
-**Explanation** : Snapshot of financial position.
-
-**Beginner Tips** : Use monthly for business health check.
+See [API Reference > Ledger](/api-reference) for technical details and API tests.
 
 ## Was this page helpful?
 

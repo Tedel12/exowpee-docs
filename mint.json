@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com",
-  "name": "Exowpee API",
+  "name": "Exowpee | Docs",
   "theme": "prism",
   "colors": {
     "primary": "#16A34A",
@@ -24,6 +24,7 @@
         "sandbox",
         "webhooks",
         "changelog",
+        "rbac",
         "postman",
         "roadmap"
       ]
