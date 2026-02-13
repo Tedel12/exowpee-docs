@@ -1,117 +1,68 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
+  "$schema": "https://mintlify.com",
   "name": "Exowpee API",
+  "theme": "prism",
   "colors": {
     "primary": "#16A34A",
     "light": "#07C983",
     "dark": "#15803D"
   },
-  "favicon": "./favicon.svg",
-  "navigation": {
+  "favicon": "/favicon.svg",
   "tabs": [
     {
-      "tab": "Overview",
-      "groups": [
-        {
-          "group": "Getting Started",
-          "pages": [
-            "authentication",
-            "errors",
-            "sandbox"
-          ],
-          "icon": "home"
-
-        },
-        {
-          "group": "Advanced",
-          "pages": [
-            "webhooks",
-            "roadmap"
-          ],
-          "icon": "cogs"
-        }
-      ]
-    },
-    {
-      "tab": "Modules",
-      "groups": [
-        {
-          "group": "IAM (Identity & Access Management)",
-          "icon": "lock",
-          "pages": ["modules/iam"]
-        },
-        {
-          "group": "Catalog (Catalog Management)",
-          "icon": "book-open",
-          "pages": ["modules/catalog"]
-        },
-        {
-          "group": "Customer (Customer Management)",
-          "icon": "users",
-          "pages": ["modules/customer"]
-        },
-        {
-          "group": "Order (Order Management)",
-          "icon": "shopping-cart",
-          "pages": ["modules/order"]
-        },
-        {
-          "group": "Ledger (Accounting)",
-          "icon": "calculator",
-          "pages": ["modules/ledger"]
-        },
-        {
-          "group": "Team (Team & Business Management)",
-          "icon": "briefcase",
-          "pages": ["modules/team"]
-        }
-      ]
-    },
-    {
-      "tab": "API Reference",
+      "name": "API Reference",
+      "url": "api-reference",
       "openapi": "/openapi.json"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "authentication",
+        "errors",
+        "sandbox",
+        "webhooks",
+        "changelog",
+        "postman",
+        "roadmap"
+      ]
     },
     {
-      "tab": "Resources",
-      "groups": [
-        {"group": "Changelog", "icon": "history", "pages": ["changelog"]},
-        {"group": "Postman Collection", "icon": "download", "pages": ["postman"]}
-      ]
+      "group": "IAM",
+      "icon": "lock",
+      "pages": ["modules/iam"]
+    },
+    {
+      "group": "Catalog",
+      "icon": "book-open",
+      "pages": ["modules/catalog"]
+    },
+    {
+      "group": "Customer",
+      "icon": "users",
+      "pages": ["modules/customer"]
+    },
+    {
+      "group": "Order",
+      "icon": "cart-shopping",
+      "pages": ["modules/order"]
+    },
+    {
+      "group": "Ledger",
+      "icon": "calculator",
+      "pages": ["modules/ledger"]
+    },
+    {
+      "group": "Team",
+      "icon": "briefcase",
+      "pages": ["modules/team"]
     }
-  ]
-},
-    "redirects": [
-  {
-    "source": "/introduction",
-    "destination": "/"
-  }
-],
-  "api": {
-    "group": "API Reference"
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:support@exowpee.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.exowpee.com"
-    }
-  },
+  ],
+  "openapi": "/openapi.json",
   "footer": {
     "socials": {
-      "x": "https://x.com/exowpee",
-      "github": "https://github.com/exowpee",
-      "linkedin": "https://linkedin.com/company/exowpee"
+      "github": "https://github.com"
     }
   }
 }
