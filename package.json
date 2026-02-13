@@ -1,0 +1,8 @@
+{
+  "name": "exowpee-docs",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "npx mintlify@latest dev --build"
+  },
+  "dependencies": {}
+}
