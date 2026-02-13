@@ -314,62 +314,28 @@
       }
     },
     "/variation": {
-      "get": {
-        "tags": ["Variation"],
-        "summary": "List variations",
-        "security": [{ "bearerAuth": [] }],
-        "responses": {
-          "200": {
-            "description": "List of variations",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": { "$ref": "#/components/schemas/Variation" }
-                }
-              }
-            }
+        "get": {
+          "tags": ["Variation"],
+          "summary": "List all variations",
+          "responses": {
+            "200": { "description": "OK" }
           }
         }
       },
+    "/variation/{id}": {
       "put": {
         "tags": ["Variation"],
-        "summary": "Update variation",
-        "security": [{ "bearerAuth": [] }],
+        "summary": "Update a specific variation",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "integer"
-            }
+            "schema": { "type": "string" }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": { "type": "string" },
-                  "sku": { "type": "string" },
-                  "price": { "type": "number" }
-                }
-              }
-            }
-          }
-        },
         "responses": {
-          "200": {
-            "description": "Variation updated successfully",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Variation" }
-              }
-            }
-          }
+          "200": { "description": "Updated" }
         }
       }
     },
