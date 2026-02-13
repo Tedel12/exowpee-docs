@@ -2,7 +2,15 @@
   "version": 2,
   "builds": [
     {
+      "src": "**/*.mdx",
+      "use": "@vercel/static"
+    },
+    {
       "src": "docs.json",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "openapi.json",
       "use": "@vercel/static"
     }
   ],
