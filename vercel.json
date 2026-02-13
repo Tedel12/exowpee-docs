@@ -1,6 +1,5 @@
 {
-  "buildCommand": "cd docs && npx mint build",
-  "outputDirectory": "docs/dist",
-  "installCommand": "cd docs && npm install",
+  "buildCommand": "npx mint build",
+  "outputDirectory": "dist",
   "framework": null
 }
